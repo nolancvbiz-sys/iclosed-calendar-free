@@ -1,5 +1,7 @@
 require('dotenv').config();
 
+console.log('[ENV] Environment variables loaded:', Object.keys(process.env));
+
 const express    = require('express');
 const { google } = require('googleapis');
 
