@@ -7,7 +7,6 @@ const { google } = require('googleapis');
 
 const PORT           = process.env.PORT || 8080;
 const CALENDAR_ID    = process.env.GOOGLE_CALENDAR_ID;
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 
 let serviceAccountKey = null;
 let configError = null;
@@ -128,15 +127,6 @@ app.post('/webhook/iclosed', async (req, res) => {
     return res.status(503).json({ ok: false, error: 'Server misconfigured: ' + configError });
   }
 
-  // ── Optional auth check ──────────────────────────────────────────────────
-  if (WEBHOOK_SECRET) {
-    const authHeader = req.headers['authorization'] || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    if (token !== WEBHOOK_SECRET) {
-      console.warn(`[${requestId}] Unauthorized — bad or missing secret`);
-      return res.status(401).json({ ok: false, error: 'Unauthorized' });
-    }
-  }
 
   // ── Validate body ────────────────────────────────────────────────────────
   if (!req.body || typeof req.body !== 'object') {
@@ -241,5 +231,4 @@ app.listen(PORT, () => {
   console.log(`[START] iclosed-calendar-free running on port ${PORT}`);
   console.log(`[START] Calendar ID: ${CALENDAR_ID || '(not set)'}`);
   console.log(`[START] Service account: ${serviceAccountKey ? serviceAccountKey.client_email : '(not configured)'}`);
-  console.log(`[START] Auth: ${WEBHOOK_SECRET ? 'Bearer token enabled' : 'No auth (set WEBHOOK_SECRET to enable)'}`);
 });
