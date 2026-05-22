@@ -5,7 +5,7 @@ const { google } = require('googleapis');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const PORT           = process.env.PORT || 3000;
+const PORT           = process.env.PORT || 8080;
 const CALENDAR_ID    = process.env.GOOGLE_CALENDAR_ID;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 
