@@ -1,0 +1,15 @@
+{
+  "name": "iclosed-calendar-free",
+  "version": "1.0.0",
+  "description": "Webhook that marks Google Calendar events as Free when a call is booked in iClosed",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "googleapis": "^144.0.0"
+  }
+}
