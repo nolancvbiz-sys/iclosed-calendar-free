@@ -2,30 +2,30 @@ require('dotenv').config();
 
 const express    = require('express');
 const { google } = require('googleapis');
-const fs         = require('fs');
-const path       = require('path');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const PORT         = process.env.PORT || 3000;
-const SA_PATH      = process.env.GOOGLE_SERVICE_ACCOUNT_PATH;
-const CALENDAR_ID  = process.env.GOOGLE_CALENDAR_ID;
+const PORT           = process.env.PORT || 3000;
+const CALENDAR_ID    = process.env.GOOGLE_CALENDAR_ID;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 
-if (!SA_PATH || !CALENDAR_ID) {
-  console.error('[FATAL] GOOGLE_SERVICE_ACCOUNT_PATH and GOOGLE_CALENDAR_ID must be set in .env');
+if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON || !CALENDAR_ID) {
+  console.error('[FATAL] GOOGLE_SERVICE_ACCOUNT_JSON and GOOGLE_CALENDAR_ID must be set in .env');
   process.exit(1);
 }
 
-if (!fs.existsSync(SA_PATH)) {
-  console.error('[FATAL] Service account file not found at:', SA_PATH);
+let serviceAccountKey;
+try {
+  serviceAccountKey = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+} catch (e) {
+  console.error('[FATAL] GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON:', e.message);
   process.exit(1);
 }
 
 // ─── Google Auth ──────────────────────────────────────────────────────────────
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: SA_PATH,
+  credentials: serviceAccountKey,
   scopes: ['https://www.googleapis.com/auth/calendar'],
 });
 
@@ -230,6 +230,6 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`[START] iclosed-calendar-free running on port ${PORT}`);
   console.log(`[START] Calendar ID: ${CALENDAR_ID}`);
-  console.log(`[START] Service account: ${SA_PATH}`);
+  console.log(`[START] Service account: ${serviceAccountKey.client_email}`);
   console.log(`[START] Auth: ${WEBHOOK_SECRET ? 'Bearer token enabled' : 'No auth (set WEBHOOK_SECRET to enable)'}`);
 });
