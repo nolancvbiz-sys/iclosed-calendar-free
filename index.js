@@ -9,27 +9,32 @@ const PORT           = process.env.PORT || 8080;
 const CALENDAR_ID    = process.env.GOOGLE_CALENDAR_ID;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 
-if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON || !CALENDAR_ID) {
-  console.error('[FATAL] GOOGLE_SERVICE_ACCOUNT_JSON and GOOGLE_CALENDAR_ID must be set in .env');
-  process.exit(1);
-}
+let serviceAccountKey = null;
+let configError = null;
 
-let serviceAccountKey;
-try {
-  serviceAccountKey = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-} catch (e) {
-  console.error('[FATAL] GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON:', e.message);
-  process.exit(1);
+if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+  configError = 'GOOGLE_SERVICE_ACCOUNT_JSON is not set';
+  console.error('[CONFIG ERROR]', configError);
+} else if (!CALENDAR_ID) {
+  configError = 'GOOGLE_CALENDAR_ID is not set';
+  console.error('[CONFIG ERROR]', configError);
+} else {
+  try {
+    serviceAccountKey = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  } catch (e) {
+    configError = 'GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON: ' + e.message;
+    console.error('[CONFIG ERROR]', configError);
+  }
 }
 
 // ─── Google Auth ──────────────────────────────────────────────────────────────
 
-const auth = new google.auth.GoogleAuth({
+const auth = serviceAccountKey ? new google.auth.GoogleAuth({
   credentials: serviceAccountKey,
   scopes: ['https://www.googleapis.com/auth/calendar'],
-});
+}) : null;
 
-const calendar = google.calendar({ version: 'v3', auth });
+const calendar = auth ? google.calendar({ version: 'v3', auth }) : null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -110,13 +115,18 @@ app.use(express.json());
 
 // Health check
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', service: 'iclosed-calendar-free' });
+  res.json({ status: configError ? 'misconfigured' : 'ok', service: 'iclosed-calendar-free', error: configError || undefined });
 });
 
 // Main webhook
 app.post('/webhook/iclosed', async (req, res) => {
   const requestId = Date.now(); // simple correlation ID for log tracing
   console.log(`[${requestId}] Incoming webhook`);
+
+  if (configError) {
+    console.error(`[${requestId}] Rejecting request — server misconfigured: ${configError}`);
+    return res.status(503).json({ ok: false, error: 'Server misconfigured: ' + configError });
+  }
 
   // ── Optional auth check ──────────────────────────────────────────────────
   if (WEBHOOK_SECRET) {
@@ -229,7 +239,7 @@ app.use((req, res) => {
 
 app.listen(PORT, () => {
   console.log(`[START] iclosed-calendar-free running on port ${PORT}`);
-  console.log(`[START] Calendar ID: ${CALENDAR_ID}`);
-  console.log(`[START] Service account: ${serviceAccountKey.client_email}`);
+  console.log(`[START] Calendar ID: ${CALENDAR_ID || '(not set)'}`);
+  console.log(`[START] Service account: ${serviceAccountKey ? serviceAccountKey.client_email : '(not configured)'}`);
   console.log(`[START] Auth: ${WEBHOOK_SECRET ? 'Bearer token enabled' : 'No auth (set WEBHOOK_SECRET to enable)'}`);
 });
