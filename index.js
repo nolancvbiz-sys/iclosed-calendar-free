@@ -19,9 +19,9 @@ if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
   console.error('[CONFIG ERROR]', configError);
 } else {
   try {
-    serviceAccountKey = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    serviceAccountKey = JSON.parse(Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON, 'base64').toString('utf8'));
   } catch (e) {
-    configError = 'GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON: ' + e.message;
+    configError = 'GOOGLE_SERVICE_ACCOUNT_JSON could not be decoded/parsed: ' + e.message;
     console.error('[CONFIG ERROR]', configError);
   }
 }
